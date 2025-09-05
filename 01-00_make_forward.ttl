@@ -1,0 +1,78 @@
+;################################################
+;# Filename    : 01-00_make_forward.ttl
+;#
+;# Version              :  1.0.23;# Date of Created      :  2025/09/04
+;# Date of Lastmodified :  2025/09/05
+;# Author               :  Hugo K mnadayoshi
+;################################################
+
+;# Description :
+;#  踏み台に接続し hostlist[] 全件の
+;#  Local Port Forward をまとめて張る接続のみ。
+;#  選択接続は01-02_connect_local.ttl 担当
+;#
+;# References  :
+;# 00-01_hosts.ttl (ホストリスト定義)
+;# 01-00_make_forward.ttl (Port Forward確立)
+;# 01-01_forward_config.ttl (踏台設定)
+;# 01-02_connect_local.ttl (ローカル接続)
+;# 01-03_connect_remote.ttl (リモート接続)
+;# 99-00_disconnect_all.ttl (全切断)
+;# 99-01_cleanup_all.ttl (全後始末)
+
+include './01-01_forward_config.ttl'
+include './00-01_hosts.ttl'
+; element_no, hostlist[], viewlist[] が利用可能になっている前提
+
+; Forward 設定文字列を組み立て (/ssh-L=にカンマ区切りで渡す形式)
+; 例: 60000:10.nn.nn.10:22,60001:10.nn.nn.33:22
+
+FORWARD_SETTINGS = ''
+FORWARD_INFO = ''   ; ユーザー表示用
+
+index = 0
+while index < element_no
+    portno = BASE_PORT + index
+    sprintf2 ONE '%d:%s:%s' portno hostlist[index] TARGET_SSH_PORT
+    if index == 0 then
+        FORWARD_SETTINGS = ONE
+    else
+        strconcat FORWARD_SETTINGS ','
+        strconcat FORWARD_SETTINGS ONE
+    endif
+
+    ; 表示用行
+    sprintf2 LINE '[%d] %s -> localhost:%d (→ %s:22)\n' index viewlist[index] portno hostlist[index]
+    strconcat FORWARD_INFO LINE
+
+    index = index + 1
+endwhile
+
+; ユーザーへ内容確認
+;messagebox FORWARD_INFO 'Port Forward 一覧'
+;messagebox FORWARD_INFO 'Forward 設定 (接続開始)'
+
+; 接続コマンド生成
+COMMAND = BASTION_HOST
+strconcat COMMAND ':'
+strconcat COMMAND BASTION_PORT
+strconcat COMMAND ' /ssh /2 /auth=publickey /user='
+strconcat COMMAND BASTION_USER
+strconcat COMMAND ' /keyfile='
+strconcat COMMAND KEYFILE
+;strconcat COMMAND ' /ssh-L=,20001:192.168.10.10:22'
+strconcat COMMAND ' /ssh-L=,'
+strconcat COMMAND FORWARD_SETTINGS
+
+; 確認用
+;messagebox COMMAND 'DEBUG'
+
+connect COMMAND
+if result != 2 then
+    messagebox '接続失敗: 踏台へ到達できませんでした' 'ERROR'
+    end
+endif
+
+wait '$'
+messagebox 'Forward 完了。このウィンドウは閉じずに保持してください。' 'INFO'
+end
