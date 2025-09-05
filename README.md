@@ -10,14 +10,15 @@ TeraTerm MACROを利用して、踏み台経由接続を実現する
  viewlist[], hostlist[], userlist[], element_no
  を生成する
   CSV 形式:
+```
     ID,SYS_NO,HOST_TYPE,HOST_NAME,HOST_IPv4,LOGIN_USER
-    "1","SP02","asterisk","test-02-01","10.35.3.10","mnadayoshi"
-    "2","SP02","asterisk","test-02-02","10.35.3.33","mnadayoshi"
-    "3","SP02","NFS","SP-NFS12-01","10.35.3.93",""
-    "4","SP02","NFS","SP-NFS12-02","10.35.3.94",""
-
+    "1","SP02","asterisk","test-02-01","10.nn.nn.10","username"
+    "2","SP02","asterisk","test-02-02","10.nn.nn.33","username"
+    "3","SP02","NFS","NFS12-01","10.nn.nn.93",""
+    "4","SP02","NFS","NFS12-02","10.nn.nn.94",""
+```
   ※ ダブルクォートは自動除去。末尾/先頭の空白・改行も除去。
-  ※ ありがちな誤記  …  "10.35.3.33"."mnadayoshi" は "10.35.3.33","mnadayoshi" に自動修正。
+  ※ ありがちな誤記  …  "10.nn.nn.33"."username" は "10.nn.nn.33","username" に自動修正。
 
 # 01-00_make_forward.ttl (Port Forward確立)
   踏み台に接続し hostlist[] 全件の
