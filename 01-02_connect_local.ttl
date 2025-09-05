@@ -1,0 +1,58 @@
+;################################################
+;# Filename    : 01-02_connect_local.ttl
+;#
+;# Version              :  1.0.0
+;# Date of Created      :  2025/09/04
+;# Date of Lastmodified :  2025/09/04
+;# Author               :  Hugo K mnadayoshi
+;################################################
+
+;# Description :
+;#  01-00_make_forward.ttl により
+;#  確立済みの localhost ポート群へ接続するHOSTを
+;#  listbox で選択し Tera Term ウィンドウを開く
+;#  !!01-00_make_forward.ttl は別途実行しておく!!
+;#
+;# References  :
+;# 00-01_hosts.ttl (ホストリスト定義)
+;# 01-00_make_forward.ttl (Port Forward確立)
+;# 01-01_forward_config.ttl (踏台設定)
+;# 01-02_connect_local.ttl (ローカル接続)
+;# 01-03_connect_remote.ttl (リモート接続)
+;# 99-00_disconnect_all.ttl (全切断)
+;# 99-01_cleanup_all.ttl (全後始末)
+
+include './01-01_forward_config.ttl'
+include './00-01_hosts.ttl'
+
+:SELECT_LOOP
+listbox '接続ターゲット選択 (Cancel=終了)' 'LocalForward接続' viewlist
+if result < 0 then
+    goto END
+endif
+
+SEL_INDEX = result
+PORT = BASE_PORT + SEL_INDEX
+sprintf2 PORT_STR '%d' PORT
+USER = userlist[SEL_INDEX]
+NAME = viewlist[SEL_INDEX]
+
+SECOND = '"'
+strconcat SECOND '" '
+strconcat SECOND 'localhost:'
+strconcat SECOND PORT_STR
+strconcat SECOND ' /ssh /2 /auth=publickey /user='
+strconcat SECOND USER
+strconcat SECOND ' /keyfile='
+strconcat SECOND KEYFILE
+
+connect SECOND
+
+sprintf2 MSG '%s に接続開始 (localhost:%s)' NAME PORT_STR
+messagebox MSG 'INFO'
+end
+goto SELECT_LOOP
+
+:END
+messagebox '終了。必要なら再度マクロを実行。' 'INFO'
+end
