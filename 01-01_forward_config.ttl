@@ -1,0 +1,31 @@
+;################################################
+;# Filename    : 01-01_forward_config.ttl
+;#
+;# Version              :  1.1.0
+;# Date of Created      :  2025/09/04
+;# Date of Lastmodified :  2025/09/04
+;# Author               :  Hugo K Mat mnadayoshi 
+;################################################
+
+;# Description :
+;#  SSH ポートフォワード共通設定 (include)
+;#
+;# References  :
+;# 00-01_hosts.ttl (ホストリスト定義)
+;# 01-00_make_forward.ttl (Port Forward確立)
+;# 01-01_forward_config.ttl (踏台設定)
+;# 01-02_connect_local.ttl (ローカル接続)
+;# 01-03_connect_remote.ttl (リモート接続)
+;# 99-00_disconnect_all.ttl (全切断)
+;# 99-01_cleanup_all.ttl (全後始末)
+
+BASTION_HOST = 'bastion.example.com'
+BASTION_PORT = '22'
+BASTION_USER = 'username'
+KEYFILE      = 'C:\\.ssh\\identity'
+
+; ローカル側で割当を開始する基点ポート
+BASE_PORT = 61000
+
+; 宛先サーバ (hostlist[]) の SSH ポート
+TARGET_SSH_PORT = '22'
