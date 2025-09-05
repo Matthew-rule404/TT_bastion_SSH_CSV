@@ -3,6 +3,13 @@ TeraTerm MACRO for SSH connect via bastion server / SSH FORWARD LIST from hosts.
 
 TeraTerm MACROを利用して、踏み台経由接続を実現する
 　Windows標準SSHを利用する方式ではありません
+  TeraTermのSSH転送機能（Port Forward）機能を利用します
+
+
+# Requirement:
+  動作確認済み環境
+  TeraTerm Version 5.4.1
+  https://teratermproject.github.io/
 
 # References  :
 # 00-01_hosts.ttl (ホストリスト定義)
@@ -44,3 +51,21 @@ TeraTerm MACROを利用して、踏み台経由接続を実現する
   未作成
 
 # 使い方
+  1.Windows側の任意のフォルダにttlファイル群を配置します
+  2.hosts.csvを作成します
+      sample-hosts.csvを参考にして作成、
+      または、CSV形式のcolumnに合わせて作成
+  3.踏台設定
+    01-01_forward_config.ttlにbastion host用の接続情報を記入
+    Windows側の任意のフォルダに秘密鍵を準備します
+  4.01-00_make_forward.ttlをTeraTerm MACROで実行
+    !! bastion用のサーバーが接続しているターミナルのWindowは閉じてはいけません
+    !! 閉じた場合、SSH Tunnel経由でSSH接続して作業中のターミナルが切断されます
+  5.01-02_connect_local.ttl
+    hosts.csvに記載されているターゲットを選択して、「はい(Y)」ボタンを押下
+    Port Forward機能を利用したSSH接続が確立してVTが起動します
+    初回はknown_hostsについてのセキュリティ警告が出ますので、
+    特に問題が無く、こだわりも無ければ、
+    「このホストをknown_hostsリストに追加する(A)」のチェックを入れて
+    「続行」ボタンを押下
+    次回以降、同じホストの場合警告が出なくなります
