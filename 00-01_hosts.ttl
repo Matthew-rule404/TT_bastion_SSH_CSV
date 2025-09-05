@@ -1,0 +1,216 @@
+;################################################
+;# Filename    : 00-01_hosts.ttl 
+;#
+;# Version              :  1.1.5
+;# Date of Created      :  2025/09/04
+;# Date of Lastmodified :  2025/09/05
+;# Author               :  Hugo K Mat mnadayoshi
+;################################################
+;# Description :
+;# SSH 接続先ホストリストを CSV から読み込み
+;# viewlist[], hostlist[], userlist[], element_no
+;# を生成する
+;#  CSV 形式:
+;#    ID,SYS_NO,HOST_TYPE,HOST_NAME,HOST_IPv4,LOGIN_USER
+;#    "1","SP02","asterisk","test-02-01","10.nn.nn.10","username"
+;#    "2","SP02","asterisk","test-02-02","10.nn.nn.33","username"
+;#    "3","SP02","NFS","NFS12-01","10.nn.nn.93",""
+;#    "4","SP02","NFS","NFS12-02","10.nn.nn.94",""
+;#
+;#  ※ ダブルクォートは自動除去。末尾/先頭の空白・改行も除去。
+;#  ※ ありがちな誤記  …  "10.35.3.33"."mnadayoshi" は "10.35.3.33","mnadayoshi" に自動修正。
+;################################################
+
+; ===== 設定 =====
+default_user = "mnadayoshi"
+
+; ===== 共有トリム定義 =====
+; スペースも含めたいので末尾に半角スペース
+trimchars = "\t\r\n "
+; \t\r\n を実文字に変換
+strspecial trimchars
+
+; ===== CSVファイル決定 =====
+; 事前に  csvfile = "C:\path\to\hosts.csv"  を設定して include してもOK
+csvfile = "./hosts.csv"
+ifdefined csvfile
+if result<>3 then
+  csvfile = ""
+endif
+
+strlen csvfile
+if result>0 then
+  ; 既に指定済み
+else
+  filenamebox "ホストリストCSVを選択してください (*.csv)" 0
+  if result=0 then
+    messagebox "CSVが選択されませんでした。処理を中止します。" "hosts_from_csv"
+    end
+  endif
+  csvfile = inputstr
+endif
+
+; ===== 1st pass: 行数カウント（ヘッダ除外・空行除外） =====
+fileopen fh csvfile 0 1
+if result<>0 then
+  ; ok
+else
+  messagebox "CSVを開けません: "+csvfile "hosts_from_csv"
+  end
+endif
+
+lineno = 0
+count  = 0
+
+while 1
+  filereadln fh line
+  if result=1 then
+    break
+  endif
+
+  lineno = lineno + 1
+  if lineno=1 then
+    ; ヘッダはスキップ
+    continue
+  endif
+
+  work = line
+  ; よくある誤記: 」"."<  →  "," に修正（例: ...33"."mnadayoshi"）
+  strreplace work 1 '"\."' '","'
+  ; BOM除去(先頭のEF BB BF)
+  strreplace work 1 '^\xEF\xBB\xBF' ''
+  ; 前後の空白/改行/タブを除去
+  strtrim work trimchars     ; 先頭末尾の [空白/TAB/CR/LF] を除去
+
+  strlen work
+  if result=0 then
+   continue
+  endif
+
+  count = count + 1
+endwhile
+fileclose fh
+
+element_no = count
+; element_no の型を表示（1=整数, 3=文字列）
+;ifdefined element_no
+;int2str typ result
+;sprintf 'type=%s, value=%d' typ element_no
+;messagebox inputstr 'element_no debug'
+
+; DEBUG
+;messagebox element_no '要素数カウント結果'
+
+; ここまでで element_no を数え終えた直後に入れる
+; 文字列化していても整数に正規化する
+; str2int element_no element_no
+if element_no <= 0 then
+  messagebox 'データ行が 0 件です。' 'hosts_from_csv'
+  ;end
+endif
+
+
+; 要素数0なら終了
+if element_no=0 then
+  messagebox "データ行が見つかりません（ヘッダのみ/空行のみ）" "hosts_from_csv"
+  end
+endif
+
+; ===== 配列確保 =====
+strdim viewlist element_no
+strdim hostlist element_no
+strdim userlist element_no
+
+; ===== 2nd pass: 実データ読取り =====
+fileopen fh csvfile 0
+lineno = 0
+idx    = 0
+
+while 1
+  filereadln fh line
+  if result=1 then
+   break
+  endif
+
+  lineno = lineno + 1
+  if lineno=1 then
+    ; ヘッダ行スキップ
+    continue
+  endif
+
+  work = line
+  ; 誤記修正とトリム
+  strreplace work 1 '"\."' '","'
+  strreplace work 1 '^\xEF\xBB\xBF' ''
+  strtrim work trimchars     ; 先頭末尾の [空白/TAB/CR/LF] を除去
+
+  strlen work
+  if result=0 then
+   continue
+  endif
+
+  ; カラム分割（最大6カラム）
+  ; groupmatchstr1..6 に入る
+  strsplit work ',' 6
+
+  col_id        = groupmatchstr1
+  col_sysno     = groupmatchstr2
+  col_type      = groupmatchstr3
+  col_hostname  = groupmatchstr4
+  col_ipv4      = groupmatchstr5
+  col_user      = groupmatchstr6
+
+  ; ダブルクォート・前後空白除去
+  strtrim col_id       trimchars
+  strtrim col_sysno    trimchars
+  strtrim col_type     trimchars
+  strtrim col_hostname trimchars
+  strtrim col_ipv4     trimchars
+  strtrim col_user     trimchars
+
+  ; さらに先頭末尾の " を除去
+  strtrim col_id       '"'
+  strtrim col_sysno    '"'
+  strtrim col_type     '"'
+  strtrim col_hostname '"'
+  strtrim col_ipv4     '"'
+  strtrim col_user     '"'
+
+  ; LOGIN_USER が空ならデフォルト補完
+  strlen col_user
+  if result=0 then
+    col_user = default_user
+  endif
+
+  ; viewlist = "[" + SYS_NO + "]" + HOST_NAME
+  tmp = "["
+  strconcat tmp col_sysno
+  strconcat tmp "]"
+  strconcat tmp col_hostname
+  viewlist[idx] = tmp
+
+  ; hostlist = HOST_IPv4
+  hostlist[idx] = col_ipv4
+
+  ; userlist = LOGIN_USER
+  userlist[idx] = col_user
+
+  idx = idx + 1
+  if idx>=element_no then
+    ; 予定件数に到達
+    break
+  endif
+endwhile
+
+fileclose fh
+
+; ロード結果をステータス表示（任意）
+;sprintf "CSV: "+csvfile+\r\n+"要素数: "+int2str$(element_no) "hosts_from_csv"
+FORWARD_INFO = ''   ; ユーザー表示用
+sprintf2 LINE 'CSV: %s (要素数:%d)' csvfile element_no
+; viewlist[index] portno hostlist[index]
+strconcat FORWARD_INFO LINE
+
+;messagebox FORWARD_INFO "hosts_from_csv"
+
+; ==== ここで viewlist/hostlist/userlist/element_no が利用可能になります ====
